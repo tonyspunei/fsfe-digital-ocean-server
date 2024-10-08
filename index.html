@@ -99,19 +99,42 @@
 </body>
 <script>
 	let ws;
-  const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  ws = new WebSocket(`${proto}://${window.location.host}`);
+	const proto = window.location.protocol === "https:" ? "wss" : "ws";
+	const maxRetries = 5;
+	let retryCount = 0;
 
-	ws.onopen = function() {
-		console.log("Connected to server");
-	};
+	function connectWebSocket() {
+		ws = new WebSocket(`${proto}://${window.location.host}`);
 
-	ws.onmessage = function(event) {
-		console.log("Message from server: ", event.data);
-	};
+		ws.onopen = function() {
+			console.log("Connected to server");
+			retryCount = 0; // Reset retry count on successful connection
+		};
 
-	ws.onclose = function() {
-		console.log("Disconnected from server");
-	};
+		ws.onmessage = function(event) {
+			console.log("Message from server: ", event.data);
+		};
+
+		ws.onclose = function(event) {
+			console.log("Disconnected from server", event.code, event.reason);
+			retryConnection();
+		};
+
+		ws.onerror = function(error) {
+			console.error("WebSocket error:", error);
+		};
+	}
+
+	function retryConnection() {
+		if (retryCount < maxRetries) {
+			retryCount++;
+			console.log(`Retrying connection... Attempt ${retryCount}`);
+			setTimeout(connectWebSocket, 3000); // Retry after 3 seconds
+		} else {
+			console.error("Max retries reached. Unable to connect to WebSocket server.");
+		}
+	}
+
+	connectWebSocket();
 </script>
 </html>
